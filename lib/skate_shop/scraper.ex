@@ -24,7 +24,7 @@ defmodule SkateShop.Scraper do
     |> Enum.map(fn url ->
       %URI{
         path: url,
-        host: "usa.shop-task.com",
+        host: "locoskates.com",
         scheme: "https"
       }
       |> URI.to_string()
@@ -39,28 +39,54 @@ defmodule SkateShop.Scraper do
 
     %{
       model: get_model_from_skate_page(parsed_page),
-      image: get_image_from_skate_page(parsed_page)
-      #   description: get_description_from_skate_page(parsed_page),
-      #   frame: get_frame_from_skate_page(parsed_page),
-      #   price: get_price_from_skate_page(parsed_page)
+      main_image_url: get_image_from_skate_page(parsed_page),
+      description: get_description_from_skate_page(parsed_page),
+      frame: get_frame_from_skate_page(parsed_page),
+      price_usd: get_price_from_skate_page(parsed_page)
     }
   end
 
-  def get_model_from_skate_page(parsed_page) do
+  defp get_model_from_skate_page(parsed_page) do
     parsed_page
-    |> Floki.find(".layout-column-half-right .title")
+    |> Floki.find("h1.title")
     |> Floki.text(deep: false)
     |> String.trim()
   end
 
-  def get_image_from_skate_page(parsed_page) do
-    IO.puts("IN IMAGE PARSE")
-
+  defp get_image_from_skate_page(parsed_page) do
     parsed_page
     |> Floki.find("a.shows-lightbox img")
     |> Floki.attribute("src")
     |> List.first()
     |> String.trim_leading("/")
+  end
+
+  defp get_description_from_skate_page(parsed_page) do
+    parsed_page
+    |> Floki.find(".description p:first-of-type")
+    |> Floki.text(deep: true)
+    |> String.trim()
+  end
+
+  defp get_frame_from_skate_page(parsed_page) do
+    parsed_page
+    |> Floki.find(".description table tbody tr:nth-child(4) td:nth-child(2)")
+    |> Floki.text(deep: true)
+    |> String.trim()
+  end
+
+  defp get_price_from_skate_page(parsed_page) do
+    price =
+      parsed_page
+      |> Floki.find(".price")
+      |> Floki.text(deep: false)
+      |> String.trim()
+      |> String.split()
+      |> List.first()
+      |> String.replace("$", "")
+
+    {price, _rem} = Float.parse(price)
+    price
   end
 
   defp get_page_body(url) do
